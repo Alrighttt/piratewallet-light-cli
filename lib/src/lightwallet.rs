@@ -1066,10 +1066,29 @@ impl LightWallet {
                     // Update the WalletTx 
                     // Do it in a short scope because of the write lock.
                     let mut txs = self.txs.write().unwrap();
-                    txs.get_mut(&tx.txid()).unwrap()
-                        .notes.iter_mut()
-                        .find(|nd| nd.note == note).unwrap()
-                        .memo = Some(memo);
+                    
+                    /* Debug start */
+                    match txs.get_mut(&tx.txid()) {
+                        None => info!("The txid was not found in txs"),
+                        Some(t) => {
+                            match t.notes.iter_mut().find(|nd| nd.note == note) {
+                                None => info!("The note was not found in the notes list for this wtc"),
+                                Some (_) => info!("wtx and note was found, updating memo")
+                            }
+                        }
+                    }
+                    /* Debug end */
+
+                    // Update memo if we have this Tx. 
+                    match txs.get_mut(&tx.txid())
+                        .and_then(|t| {
+                            t.notes.iter_mut().find(|nd| nd.note == note)
+                        }) {
+                            None => (),
+                            Some(nd) => {
+                                nd.memo = Some(memo)
+                            }
+                        }
                 }
             }
 
