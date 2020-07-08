@@ -1098,7 +1098,10 @@ impl LightWallet {
                         .and_then(|t| {
                             t.notes.iter_mut().find(|nd| nd.note == note)
                         }) {
-                            None => (),
+                            None => {
+                                info!("No txid matched for incoming sapling funds while updating memo");
+                                ()
+                            },
                             Some(nd) => {
                                 nd.memo = Some(memo)
                             }
