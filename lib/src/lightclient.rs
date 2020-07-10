@@ -862,7 +862,7 @@ impl LightClient {
         }
     }
 
-    pub fn do_list_transactions(&self) -> JsonValue {
+    pub fn do_list_transactions(&self, include_memo_hex: bool) -> JsonValue {
         let wallet = self.wallet.read().unwrap();
 
         // Create a list of TransactionItems from wallet txns
@@ -884,21 +884,35 @@ impl LightClient {
                     .filter( |nd| !nd.is_change )
                     .enumerate()
                     .map ( |(_i, nd)|
-                        object! {
+                        let mut o = object! {
                             "address"      => LightWallet::note_address(self.config.hrp_sapling_address(), nd),
                             "value"       => nd.note.value as i64,
-                            "memo"         => LightWallet::memo_str(&nd.memo),
+                            "memo"         => LightWallet::memo_str(&Some(nd.memo.clone())),
+                        };
+
+                        if include_memo_hex {
+                            o.insert("memohex", hex::encode(nd.memo.as_bytes())).unwrap();
+                        }
+
+                        return o;
                     })
                     .collect::<Vec<JsonValue>>();
 
                 let incoming_t_json = v.utxos.iter()
                     .filter(|u| !change_addresses.contains(&u.address))
                     .map( |uo|
-                        object! {
+                        let mut o = object! {
                             "address"       => uo.address.clone(),
                             "value"         => uo.value.clone() as i64,
                             "memo"          => None::<String>,
-                        })
+                        };
+
+                        if include_memo_hex {
+                            o.insert("memohex", None::<String>).unwrap();
+                        }
+
+                        return o;
+                    })
                     .collect::<Vec<JsonValue>>();
 
                 for json in incoming_t_json {
@@ -914,6 +928,13 @@ impl LightClient {
                             "address"      => LightWallet::note_address(self.config.hrp_sapling_address(), nd),
                             "value"       => nd.note.value as i64,
                             "memo"         => LightWallet::memo_str(&nd.memo),
+                        };
+
+                        if include_memo_hex {
+                            o.insert("memohex", hex::encode(nd.memo.as_bytes())).unwrap();
+                        }
+
+                        return o;
                     })
                     .collect::<Vec<JsonValue>>();
 
@@ -924,7 +945,14 @@ impl LightClient {
                             "address"       => uo.address.clone(),
                             "value"         => uo.value.clone() as i64,
                             "memo"          => None::<String>,
-                        })
+                        };
+
+                        if include_memo_hex {
+                            o.insert("memohex", None::<String>).unwrap();
+                        }
+
+                        return o;
+                    })
                     .collect::<Vec<JsonValue>>();
 
                 for json in incoming_t_change_json {
@@ -938,6 +966,13 @@ impl LightClient {
                             "address" => om.address.clone(),
                             "value"   => om.value,
                             "memo"    => LightWallet::memo_str(&Some(om.memo.clone())),
+                        };
+
+                        if include_memo_hex {
+                            o.insert("memohex", hex::encode(om.memo.as_bytes())).unwrap();
+                        }
+
+                        return o;
                     })
                     .collect::<Vec<JsonValue>>();
 
@@ -948,6 +983,13 @@ impl LightClient {
                             "address" => om.address.clone(),
                             "value"   => om.value,
                             "memo"    => LightWallet::memo_str(&Some(om.memo.clone())),
+                        };
+
+                        if include_memo_hex {
+                            o.insert("memohex", hex::encode(om.memo.as_bytes())).unwrap();
+                        }
+
+                        return o;
                     })
                     .collect::<Vec<JsonValue>>();
 
@@ -984,7 +1026,15 @@ impl LightClient {
                         "address" => om.address.clone(),
                         "value"   => om.value,
                         "memo"    => LightWallet::memo_str(&Some(om.memo.clone())),
-                }).collect::<Vec<JsonValue>>();
+                    };
+
+                    if include_memo_hex {
+                        o.insert("memohex", hex::encode(om.memo.as_bytes())).unwrap();
+                    }
+
+                    return o;
+                })
+                .collect::<Vec<JsonValue>>();
 
             object! {
                 "block_height" => wtx.block,
