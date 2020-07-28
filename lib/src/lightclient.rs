@@ -375,7 +375,7 @@ impl LightClient {
             self.sapling_spend.extend_from_slice(sapling_spend);
         }
 
-        // Ensure that the sapling params are stored on disk properly as well. 
+        // Ensure that the sapling params are stored on disk properly as well.
         match self.config.get_zcash_params_path() {
             Ok(zcash_params_dir) => {
                 // Create the sapling output and spend params files
@@ -383,7 +383,7 @@ impl LightClient {
                     Ok(_) => {},
                     Err(e) => eprintln!("Warning: Couldn't write the output params!\n{}", e)
                 };
-                
+
                 match LightClient::write_file_if_not_exists(&zcash_params_dir, "sapling-spend.params", &self.sapling_spend) {
                     Ok(_) => {},
                     Err(e) => eprintln!("Warning: Couldn't write the output params!\n{}", e)
@@ -393,7 +393,7 @@ impl LightClient {
                 eprintln!("{}", e);
             }
         };
-        
+
         Ok(())
     }
 
@@ -817,7 +817,7 @@ impl LightClient {
         let mut unspent_notes: Vec<JsonValue> = vec![];
         let mut spent_notes  : Vec<JsonValue> = vec![];
         let mut pending_notes: Vec<JsonValue> = vec![];
-        
+
         let anchor_height: i32 = self.wallet.read().unwrap().get_anchor_height() as i32;
 
         {
@@ -1157,7 +1157,7 @@ impl LightClient {
         } else if key.starts_with(self.config.hrp_sapling_viewing_key()) {
             self.do_import_vk(key, birthday)
         } else {
-            Err(format!("'{}' was not recognized as either a spending key or a viewing key because it didn't start with either '{}' or '{}'", 
+            Err(format!("'{}' was not recognized as either a spending key or a viewing key because it didn't start with either '{}' or '{}'",
                 key, self.config.hrp_sapling_private_key(), self.config.hrp_sapling_viewing_key()))
         }
     }
@@ -1211,7 +1211,7 @@ impl LightClient {
 
         Ok(array![new_address])
     }
-    
+
 
     pub fn clear_state(&self) {
         // First, clear the state from the wallet
@@ -1616,7 +1616,7 @@ pub mod tests {
     #[test]
     pub fn test_bad_import() {
         let lc = super::LightClient::unconnected(TEST_SEED.to_string(), None).unwrap();
-        
+
         assert!(lc.do_import_sk("bad_priv_key".to_string(), 0).is_err());
         assert!(lc.do_import_vk("bad_view_key".to_string(), 0).is_err());
     }

@@ -1804,18 +1804,18 @@ impl LightWallet {
                 // Create a single mutable slice of all the wallet's note's witnesses.
                 let mut witness_refs: Vec<_> = txs
                     .values_mut()
-                    .map(|tx| 
+                    .map(|tx|
                         tx.notes.iter_mut()
-                            .filter_map(|nd| 
-                                // Note was not spent 
+                            .filter_map(|nd|
+                                // Note was not spent
                                 if nd.spent.is_none() && nd.unconfirmed_spent.is_none() {
-                                    nd.witnesses.last_mut() 
+                                    nd.witnesses.last_mut()
                                 } else if nd.spent.is_some() && nd.spent_at_height.is_some() && nd.spent_at_height.unwrap() < height - (MAX_REORG as i32) - 1 {
                                    // Note was spent in the last 100 blocks
-                                    nd.witnesses.last_mut() 
-                                } else { 
+                                    nd.witnesses.last_mut()
+                                } else {
                                     // If note was old (spent NOT in the last 100 blocks)
-                                    None 
+                                    None
                                 }))
                     .flatten()
                     .collect();
@@ -1932,12 +1932,12 @@ impl LightWallet {
         Ok(all_txs)
     }
 
-    // Add the spent_at_height for each sapling note that has been spent. This field was added in wallet version 8, 
+    // Add the spent_at_height for each sapling note that has been spent. This field was added in wallet version 8,
     // so for older wallets, it will need to be added
     pub fn fix_spent_at_height(&self) {
-        // First, build an index of all the txids and the heights at which they were spent. 
+        // First, build an index of all the txids and the heights at which they were spent.
         let spent_txid_map: HashMap<_, _> = self.txs.read().unwrap().iter().map(|(txid, wtx)| (txid.clone(), wtx.block)).collect();
-        
+
         // Go over all the sapling notes that might need updating
         self.txs.write().unwrap().values_mut().for_each(|wtx| {
             wtx.notes.iter_mut()
@@ -2154,22 +2154,12 @@ impl LightWallet {
                 Some(s) => {
                     // If the string starts with an "0x", and contains only hex chars ([a-f0-9]+) then
                     // interpret it as a hex
-                    let s_bytes = if s.to_lowercase().starts_with("0x") {
-                        match hex::decode(&s[2..s.len()]) {
-                            Ok(data) => data,
-                            Err(_) => Vec::from(s.as_bytes())
-                        }
-                    } else {
-                        Vec::from(s.as_bytes())
-                    };
-
-                    match Memo::from_bytes(&s_bytes) {
-                        None => {
-                            let e = format!("Error creating output. Memo {:?} is too long", s);
+                    match utils::interpret_memo_string(&s) {
+                        Ok(m) => Some(m),
+                        Err(e) => {
                             error!("{}", e);
                             return Err(e);
-                        },
-                        Some(m) => Some(m)
+                        }
                     }
                 }
             };
@@ -2244,10 +2234,16 @@ impl LightWallet {
                                 None    => Memo::default(),
                                 Some(s) => {
                                     // If the address is not a z-address, then drop the memo
-                                    if LightWallet::is_shielded_address(&addr.to_string(), &self.config) {
-                                            Memo::from_bytes(s.as_bytes()).unwrap()
-                                    } else {
+                                    if !LightWallet::is_shielded_address(&addr.to_string(), &self.config) {
                                         Memo::default()
+                                    } else {
+                                        match utils::interpret_memo_string(s) {
+                                            Ok(m) => m,
+                                            Err(e) => {
+                                                error!("{}", e);
+                                                Memo::default()
+                                            }
+                                        }
                                     }
                                 }
                             },
