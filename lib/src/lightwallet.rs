@@ -1948,15 +1948,18 @@ impl LightWallet {
         });
     }
 
-    pub fn send_to_address(
+    pub fn send_to_address<F> (
         &self,
         consensus_branch_id: u32,
         spend_params: &[u8],
         output_params: &[u8],
         from: &str,
         tos: Vec<(&str, u64, Option<String>)>,
-        fee: &u64
-    ) -> Result<Box<[u8]>, String> {
+        fee: &u64,
+        broadcast_fn: F
+    ) -> Result<(String, Vec<u8>), String>
+        where F: Fn(Box<[u8]>) -> Result<String, String>
+    {
         if !self.unlocked {
             return Err("Cannot spend while wallet is locked".to_string());
         }
@@ -2204,7 +2207,11 @@ impl LightWallet {
         println!("{}: Transaction created", now() - start_time);
         println!("Transaction ID: {}", tx.txid());
 
+        // Create the TX bytes
+        let mut raw_tx = vec![];
+        tx.write(&mut raw_tx).unwrap();
 
+        let txid = broadcast_fn(raw_tx.clone().into_boxed_slice())?;
 
         // Mark notes as spent.
         {
@@ -2272,10 +2279,7 @@ impl LightWallet {
             }
         }
 
-        // Return the encoded transaction, so the caller can send it.
-        let mut raw_tx = vec![];
-        tx.write(&mut raw_tx).unwrap();
-        Ok(raw_tx.into_boxed_slice())
+        Ok((txid, raw_tx))
     }
 
     // After some blocks have been mined, we need to remove the Txns from the mempool_tx structure
