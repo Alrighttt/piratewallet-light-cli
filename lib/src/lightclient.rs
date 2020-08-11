@@ -146,6 +146,9 @@ impl LightClientConfig {
                 zcash_data_location = dirs::data_dir().expect("Couldn't determine app data directory!");
                 zcash_data_location.push("Zero");
             } else {
+                if dirs::home_dir().is_none() {
+                    info!("Couldn't determine home dir!");
+                }
                 zcash_data_location = dirs::home_dir().expect("Couldn't determine home directory!");
                 zcash_data_location.push(".zero");
             };
@@ -174,6 +177,10 @@ impl LightClientConfig {
     }
 
     pub fn get_zcash_params_path(&self) -> io::Result<Box<Path>> {
+        if dirs::home_dir().is_none() {
+            return Err(io::Error::new(io::ErrorKind::InvalidData, "Couldn't determine Home Dir"));
+        }
+
         let mut zcash_params = self.get_zcash_data_path().into_path_buf();
         zcash_params.push("..");
         if cfg!(target_os="macos") || cfg!(target_os="windows") {
@@ -375,24 +382,26 @@ impl LightClient {
             self.sapling_spend.extend_from_slice(sapling_spend);
         }
 
-        // Ensure that the sapling params are stored on disk properly as well.
-        match self.config.get_zcash_params_path() {
-            Ok(zcash_params_dir) => {
-                // Create the sapling output and spend params files
-                match LightClient::write_file_if_not_exists(&zcash_params_dir, "sapling-output.params", &self.sapling_output) {
-                    Ok(_) => {},
-                    Err(e) => eprintln!("Warning: Couldn't write the output params!\n{}", e)
-                };
+        // Ensure that the sapling params are stored on disk properly as well. Only on desktop
+        if cfg!(all(not(target_os="ios"), not(target_os="android"))) {
+            match self.config.get_zcash_params_path() {
+                Ok(zcash_params_dir) => {
+                    // Create the sapling output and spend params files
+                    match LightClient::write_file_if_not_exists(&zcash_params_dir, "sapling-output.params", &self.sapling_output) {
+                        Ok(_) => {},
+                        Err(e) => eprintln!("Warning: Couldn't write the output params!\n{}", e)
+                    };
 
-                match LightClient::write_file_if_not_exists(&zcash_params_dir, "sapling-spend.params", &self.sapling_spend) {
-                    Ok(_) => {},
-                    Err(e) => eprintln!("Warning: Couldn't write the output params!\n{}", e)
+                    match LightClient::write_file_if_not_exists(&zcash_params_dir, "sapling-spend.params", &self.sapling_spend) {
+                        Ok(_) => {},
+                        Err(e) => eprintln!("Warning: Couldn't write the output params!\n{}", e)
+                    }
+                },
+                Err(e) => {
+                    eprintln!("{}", e);
                 }
-            },
-            Err(e) => {
-                eprintln!("{}", e);
-            }
-        };
+            };
+        }
 
         Ok(())
     }
@@ -834,18 +843,14 @@ impl LightClient {
             // Collect Sapling notes
             wallet.txs.read().unwrap().iter()
                 .flat_map( |(txid, wtx)| {
-<<<<<<< HEAD
-                    wtx.notes.iter().filter_map(move |nd|
-=======
                     let spendable_address = spendable_address.clone();
-                    wtx.notes.iter().filter_map(move |nd| 
->>>>>>> a087a44... "spendable" reflects if we have the spending key.
+                    wtx.notes.iter().filter_map(move |nd|
                         if !all_notes && nd.spent.is_some() {
                             None
                         } else {
                             let address = LightWallet::note_address(self.config.hrp_sapling_address(), nd);
-                            let spendable = address.is_some() && 
-                                                    spendable_address.contains(&address.clone().unwrap()) && 
+                            let spendable = address.is_some() &&
+                                                    spendable_address.contains(&address.clone().unwrap()) &&
                                                     wtx.block <= anchor_height && nd.spent.is_none() && nd.unconfirmed_spent.is_none();
 
                             Some(object!{
