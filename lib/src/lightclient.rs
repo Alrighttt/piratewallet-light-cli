@@ -883,15 +883,18 @@ impl LightClient {
                 let mut incoming_json = v.notes.iter()
                     .filter( |nd| !nd.is_change )
                     .enumerate()
-                    .map ( |(_i, nd)|
+                    .map ( |(_i, nd)| {
                         let mut o = object! {
                             "address"      => LightWallet::note_address(self.config.hrp_sapling_address(), nd),
                             "value"       => nd.note.value as i64,
-                            "memo"         => LightWallet::memo_str(&Some(nd.memo.clone())),
+                            "memo"         => LightWallet::memo_str(&nd.memo),
                         };
 
                         if include_memo_hex {
-                            o.insert("memohex", hex::encode(nd.memo.as_bytes())).unwrap();
+                            o.insert("memohex", match &nd.memo {
+                                Some(m) => hex::encode(m.as_bytes()),
+                                _ => "".to_string(),
+                            }).unwrap();
                         }
 
                         return o;
@@ -900,7 +903,7 @@ impl LightClient {
 
                 let incoming_t_json = v.utxos.iter()
                     .filter(|u| !change_addresses.contains(&u.address))
-                    .map( |uo|
+                    .map( |uo| {
                         let mut o = object! {
                             "address"       => uo.address.clone(),
                             "value"         => uo.value.clone() as i64,
@@ -923,15 +926,18 @@ impl LightClient {
                 let mut incoming_change_json = v.notes.iter()
                     .filter( |nd| nd.is_change )
                     .enumerate()
-                    .map ( |(_i, nd)|
-                        object! {
+                    .map ( |(_i, nd)| {
+                        let mut o = object! {
                             "address"      => LightWallet::note_address(self.config.hrp_sapling_address(), nd),
                             "value"       => nd.note.value as i64,
                             "memo"         => LightWallet::memo_str(&nd.memo),
                         };
 
                         if include_memo_hex {
-                            o.insert("memohex", hex::encode(nd.memo.as_bytes())).unwrap();
+                            o.insert("memohex", match &nd.memo {
+                                Some(m) => hex::encode(m.as_bytes()),
+                                _ => "".to_string(),
+                            }).unwrap();
                         }
 
                         return o;
@@ -940,8 +946,8 @@ impl LightClient {
 
                 let incoming_t_change_json = v.utxos.iter()
                     .filter(|u| change_addresses.contains(&u.address))
-                    .map( |uo|
-                        object! {
+                    .map( |uo| {
+                        let mut o = object! {
                             "address"       => uo.address.clone(),
                             "value"         => uo.value.clone() as i64,
                             "memo"          => None::<String>,
@@ -961,8 +967,8 @@ impl LightClient {
 
                 // Collect outgoing metadata
                 let outgoing_json = v.outgoing_metadata.iter()
-                    .map(|om|
-                        object!{
+                    .map(|om| {
+                        let mut o = object!{
                             "address" => om.address.clone(),
                             "value"   => om.value,
                             "memo"    => LightWallet::memo_str(&Some(om.memo.clone())),
@@ -978,8 +984,8 @@ impl LightClient {
 
                 // Collect outgoing metadata change
                 let outgoing_change_json = v.outgoing_metadata_change.iter()
-                    .map(|om|
-                        object!{
+                    .map(|om| {
+                        let mut o = object!{
                             "address" => om.address.clone(),
                             "value"   => om.value,
                             "memo"    => LightWallet::memo_str(&Some(om.memo.clone())),
@@ -1021,8 +1027,8 @@ impl LightClient {
 
             // Collect outgoing metadata
             let outgoing_json = wtx.outgoing_metadata.iter()
-                .map(|om|
-                    object!{
+                .map(|om| {
+                    let mut o = object!{
                         "address" => om.address.clone(),
                         "value"   => om.value,
                         "memo"    => LightWallet::memo_str(&Some(om.memo.clone())),
