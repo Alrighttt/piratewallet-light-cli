@@ -64,7 +64,8 @@ use extended_key::{KeyIndex, ExtendedPrivKey};
 use walletzkey::{WalletZKey, WalletZKeyType};
 
 pub const MAX_REORG: usize = 100;
-pub const GAP_RULE_UNUSED_ADDRESSES: usize = 5;
+
+pub const GAP_RULE_UNUSED_ADDRESSES: usize = 0;
 
 fn now() -> f64 {
     SystemTime::now().duration_since(SystemTime::UNIX_EPOCH).unwrap().as_secs() as f64
@@ -994,7 +995,7 @@ impl LightWallet {
                         // Check to see if we have this note's spending key.
                         self.have_spendingkey_for_extfvk(&nd.extfvk)
                     })
-                    .filter(|nd| {  // TODO, this whole section is shared with verified_balance. Refactor it. 
+                    .filter(|nd| {  // TODO, this whole section is shared with verified_balance. Refactor it.
                         match addr.clone() {
                             Some(a) => a == encode_payment_address(
                                                 self.config.hrp_sapling_address(),
@@ -1006,7 +1007,7 @@ impl LightWallet {
                     })
                     .map(|nd| {
                         if tx.block as u32 <= anchor_height {
-                            // If confirmed, then unconfirmed is 0 
+                            // If confirmed, then unconfirmed is 0
                             0
                         } else {
                             // If confirmed but dont have anchor yet, it is unconfirmed
@@ -1096,11 +1097,11 @@ impl LightWallet {
 
     pub fn have_spending_key_for_zaddress(&self, address: &String) -> bool {
         match self.zkeys.read().unwrap().iter()
-            .find(|zk| encode_payment_address(self.config.hrp_sapling_address(), &zk.zaddress) == *address) 
+            .find(|zk| encode_payment_address(self.config.hrp_sapling_address(), &zk.zaddress) == *address)
             {
                 None => false,
                 Some(zk) => zk.have_spending_key()
-            }            
+            }
     }
 
     fn add_toutput_to_wtx(&self, height: i32, timestamp: u64, txid: &TxId, vout: &TxOut, n: u64) {
